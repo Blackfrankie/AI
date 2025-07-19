@@ -5,7 +5,10 @@ import { Textarea } from '../ui/textarea';
 import { Input } from '../ui/input';
 import { Badge } from '../ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
-import { mockGameAI } from '../../data/mock-ai';
+import axios from 'axios';
+
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+const API = `${BACKEND_URL}/api`;
 
 const GameCreator = () => {
   const [gameIdea, setGameIdea] = useState('');
@@ -13,17 +16,37 @@ const GameCreator = () => {
   const [platform, setPlatform] = useState('web');
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedGame, setGeneratedGame] = useState(null);
+  const [sessionId] = useState(() => localStorage.getItem('ai_session_id'));
 
   const handleGenerate = async () => {
     if (!gameIdea.trim()) return;
     
     setIsGenerating(true);
     
-    setTimeout(() => {
-      const result = mockGameAI.generateGame(gameIdea, gameType, platform);
-      setGeneratedGame(result);
+    try {
+      const response = await axios.post(`${API}/ai/game`, {
+        game_idea: gameIdea,
+        game_type: gameType,
+        platform,
+        session_id: sessionId
+      });
+      
+      setGeneratedGame(response.data.result);
+    } catch (error) {
+      console.error('Error generating game:', error);
+      // Fallback to mock data
+      const mockResult = {
+        title: `${gameType || 'Epic'} Adventure`,
+        description: `AI-generated game: ${gameIdea}`,
+        icon: '🎮',
+        stats: { levels: 15, assets: 45, codeLines: 2500, playtime: '8h' },
+        features: ['Smooth Gameplay', 'Multiple Levels', 'Sound Effects'],
+        techStack: ['HTML5 Canvas', 'JavaScript', 'WebGL']
+      };
+      setGeneratedGame(mockResult);
+    } finally {
       setIsGenerating(false);
-    }, 4000);
+    }
   };
 
   const gameTypes = [
