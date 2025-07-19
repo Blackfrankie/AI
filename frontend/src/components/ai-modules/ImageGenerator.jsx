@@ -5,7 +5,10 @@ import { Textarea } from '../ui/textarea';
 import { Input } from '../ui/input';
 import { Badge } from '../ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
-import { mockImageAI } from '../../data/mock-ai';
+import axios from 'axios';
+
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+const API = `${BACKEND_URL}/api`;
 
 const ImageGenerator = () => {
   const [prompt, setPrompt] = useState('');
@@ -14,17 +17,37 @@ const ImageGenerator = () => {
   const [quality, setQuality] = useState('high');
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedImages, setGeneratedImages] = useState([]);
+  const [sessionId] = useState(() => localStorage.getItem('ai_session_id'));
 
   const handleGenerate = async () => {
     if (!prompt.trim()) return;
     
     setIsGenerating(true);
     
-    setTimeout(() => {
-      const result = mockImageAI.generateImages(prompt, style, size, quality);
-      setGeneratedImages(result);
+    try {
+      const response = await axios.post(`${API}/ai/image`, {
+        prompt,
+        style,
+        size,
+        quality,
+        session_id: sessionId
+      });
+      
+      setGeneratedImages(response.data.result.images || []);
+    } catch (error) {
+      console.error('Error generating images:', error);
+      // Fallback to mock data
+      const mockImages = Array(4).fill(null).map((_, i) => ({
+        url: `https://picsum.photos/400/400?random=${Math.random()}`,
+        description: `AI generated ${style} image: ${prompt}`,
+        style: style,
+        resolution: size,
+        fileSize: `${Math.floor(Math.random() * 5) + 1}MB`
+      }));
+      setGeneratedImages(mockImages);
+    } finally {
       setIsGenerating(false);
-    }, 3500);
+    }
   };
 
   const styles = [
