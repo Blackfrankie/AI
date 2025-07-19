@@ -1,6 +1,6 @@
 import React from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import FlappyBirdGame from "./components/FlappyBirdGame";
+import AIAssistantPlatform from "./components/AIAssistantPlatform";
 import "./App.css";
 
 function App() {
@@ -8,7 +8,7 @@ function App() {
     <div className="App">
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<FlappyBirdGame />} />
+          <Route path="/" element={<AIAssistantPlatform />} />
         </Routes>
       </BrowserRouter>
     </div>
