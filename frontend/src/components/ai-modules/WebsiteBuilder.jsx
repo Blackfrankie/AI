@@ -4,25 +4,47 @@ import { Button } from '../ui/button';
 import { Textarea } from '../ui/textarea';
 import { Input } from '../ui/input';
 import { Badge } from '../ui/badge';
-import { mockWebsiteAI } from '../../data/mock-ai';
+import axios from 'axios';
+
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+const API = `${BACKEND_URL}/api`;
 
 const WebsiteBuilder = () => {
   const [description, setDescription] = useState('');
   const [websiteType, setWebsiteType] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedWebsite, setGeneratedWebsite] = useState(null);
+  const [sessionId] = useState(() => localStorage.getItem('ai_session_id'));
 
   const handleGenerate = async () => {
     if (!description.trim()) return;
     
     setIsGenerating(true);
     
-    // Simulate AI generation delay
-    setTimeout(() => {
-      const result = mockWebsiteAI.generateWebsite(description, websiteType);
-      setGeneratedWebsite(result);
+    try {
+      const response = await axios.post(`${API}/ai/website`, {
+        description,
+        website_type: websiteType,
+        session_id: sessionId
+      });
+      
+      setGeneratedWebsite(response.data.result);
+    } catch (error) {
+      console.error('Error generating website:', error);
+      // Fallback to mock data if API fails
+      const mockResult = {
+        preview: `<div style="padding: 2rem; text-center; border: 2px dashed #ccc; border-radius: 10px;">
+          <h2>Demo Website Preview</h2>
+          <p>This is a mock preview. API integration is ready but using fallback data.</p>
+          <p><strong>Your request:</strong> ${description}</p>
+        </div>`,
+        stats: { files: 3, components: 5, responsive: '✓', seo_score: '90/100' },
+        features: ['Responsive Design', 'SEO Optimized', 'Modern UI/UX']
+      };
+      setGeneratedWebsite(mockResult);
+    } finally {
       setIsGenerating(false);
-    }, 3000);
+    }
   };
 
   const websiteTypes = [
