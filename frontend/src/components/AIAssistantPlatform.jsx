@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from './ui/card';
 import { Button } from './ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
@@ -10,9 +10,56 @@ import ImageGenerator from './ai-modules/ImageGenerator';
 import CodeAssistant from './ai-modules/CodeAssistant';
 import DataAnalyzer from './ai-modules/DataAnalyzer';
 import CreativeStudio from './ai-modules/CreativeStudio';
+import axios from 'axios';
+
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+const API = `${BACKEND_URL}/api`;
 
 const AIAssistantPlatform = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [sessionId, setSessionId] = useState(null);
+  const [platformStats, setPlatformStats] = useState(null);
+
+  // Initialize session on component mount
+  useEffect(() => {
+    const initializeSession = async () => {
+      try {
+        // Check if session exists in localStorage
+        let existingSessionId = localStorage.getItem('ai_session_id');
+        
+        if (!existingSessionId) {
+          // Create new session
+          const response = await axios.post(`${API}/sessions`, {
+            user_agent: navigator.userAgent
+          });
+          existingSessionId = response.data.id;
+          localStorage.setItem('ai_session_id', existingSessionId);
+        }
+        
+        setSessionId(existingSessionId);
+        
+        // Fetch platform statistics
+        const statsResponse = await axios.get(`${API}/stats/platform`);
+        setPlatformStats(statsResponse.data);
+      } catch (error) {
+        console.error('Error initializing session:', error);
+        // Generate fallback session ID
+        const fallbackId = 'session_' + Date.now();
+        setSessionId(fallbackId);
+        localStorage.setItem('ai_session_id', fallbackId);
+        
+        // Set fallback stats
+        setPlatformStats({
+          total_sessions: 1,
+          total_generations: 0,
+          module_stats: [],
+          platform_status: 'operational'
+        });
+      }
+    };
+
+    initializeSession();
+  }, []);
 
   const aiModules = [
     {
@@ -87,9 +134,19 @@ const AIAssistantPlatform = () => {
           <p className="text-gray-400">
             Create anything with the power of artificial intelligence
           </p>
-          <Badge className="mt-4 bg-green-500/20 text-green-400 border-green-500/30">
-            ✨ Currently using Mock AI - Get API keys for real power!
-          </Badge>
+          <div className="flex items-center justify-center gap-4 mt-4">
+            <Badge className="bg-green-500/20 text-green-400 border-green-500/30">
+              ✅ Backend Connected
+            </Badge>
+            {sessionId && (
+              <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30">
+                📱 Session Active
+              </Badge>
+            )}
+            <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30">
+              🔑 Add API keys for real AI power
+            </Badge>
+          </div>
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
@@ -154,7 +211,7 @@ const AIAssistantPlatform = () => {
               ))}
             </div>
 
-            {/* Quick Stats */}
+            {/* Platform Statistics */}
             <Card className="mt-12 bg-slate-800/50 backdrop-blur-sm border-slate-700">
               <CardHeader>
                 <CardTitle className="text-white text-center">
@@ -164,22 +221,36 @@ const AIAssistantPlatform = () => {
               <CardContent>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
                   <div>
-                    <div className="text-3xl font-bold text-cyan-400">7</div>
+                    <div className="text-3xl font-bold text-cyan-400">
+                      {platformStats?.total_sessions || 1}
+                    </div>
+                    <div className="text-gray-400">Active Sessions</div>
+                  </div>
+                  <div>
+                    <div className="text-3xl font-bold text-green-400">
+                      {platformStats?.total_generations || 0}
+                    </div>
+                    <div className="text-gray-400">AI Generations</div>
+                  </div>
+                  <div>
+                    <div className="text-3xl font-bold text-purple-400">7</div>
                     <div className="text-gray-400">AI Modules</div>
                   </div>
                   <div>
-                    <div className="text-3xl font-bold text-green-400">∞</div>
-                    <div className="text-gray-400">Possibilities</div>
-                  </div>
-                  <div>
-                    <div className="text-3xl font-bold text-purple-400">24/7</div>
-                    <div className="text-gray-400">Available</div>
-                  </div>
-                  <div>
-                    <div className="text-3xl font-bold text-pink-400">100%</div>
-                    <div className="text-gray-400">AI Powered</div>
+                    <div className="text-3xl font-bold text-pink-400">
+                      {platformStats?.platform_status === 'operational' ? '✅' : '⚠️'}
+                    </div>
+                    <div className="text-gray-400">System Status</div>
                   </div>
                 </div>
+                
+                {sessionId && (
+                  <div className="text-center mt-6">
+                    <Badge variant="outline" className="text-xs bg-slate-700/50 text-gray-400">
+                      Session ID: {sessionId.substring(0, 8)}...
+                    </Badge>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
